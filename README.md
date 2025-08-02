@@ -1,0 +1,2 @@
+# talk_face_movie_timestamp2
+VOICEVOXの複数出力ファイルを連結してタイムスタンプCSVを生成する
