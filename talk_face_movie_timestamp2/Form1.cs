@@ -184,6 +184,33 @@ namespace talk_face_movie_timestamp2
                 }
 
                 var wavFiles = Directory.GetFiles(txtInputFolder.Text, "*.wav").OrderBy(f => f).ToList();
+
+                // 先頭3文字のインデックス番号の重複チェック
+                var indexGroups = wavFiles
+                    .Select(f => Path.GetFileName(f).Substring(0, 3))
+                    .GroupBy(index => index)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToList();
+
+                if (indexGroups.Any())
+                {
+                    string duplicateIndices = string.Join(", ", indexGroups);
+                    MessageBox.Show($"インデックス番号の重複が検出されました: {duplicateIndices}。", "エラー");
+
+                    // クリーンアップの確認
+                    if (MessageBox.Show("入力フォルダをクリーンアップしますか？", "確認", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    {
+                        var existingWavFiles = Directory.GetFiles(txtInputFolder.Text, "*.wav");
+                        foreach (var file in existingWavFiles)
+                        {
+                            File.Delete(file);
+                        }
+                        MessageBox.Show("入力フォルダがクリーンアップされました。", "情報");
+                    }
+                    return; // クリーンアップ後または「いいえ」の場合、処理を終了
+                }
+
                 if (!wavFiles.Any())
                 {
                     MessageBox.Show("入力フォルダ内にWAVファイルが存在しません。", "エラー");
@@ -210,6 +237,8 @@ namespace talk_face_movie_timestamp2
             var csvLines = new List<string> { "from,to" };
             long totalSamples = 0;
             WaveFormat waveFormat = null;
+
+            txtResult.Text = "";
 
             using (var firstReader = new WaveFileReader(wavFiles[0]))
             {
@@ -276,6 +305,8 @@ namespace talk_face_movie_timestamp2
             result.AppendLine($"出力ファイル再生時間: {minutes:D3}:{seconds:00.000}");
 
             txtResult.Text = result.ToString();
+            txtResult.SelectionStart = txtResult.Text.Length;
+            txtResult.ScrollToCaret();
         }
 
         private bool IsFullWidth(char c)
