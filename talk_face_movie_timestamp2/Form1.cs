@@ -21,7 +21,8 @@ namespace talk_face_movie_timestamp2
         private Button btnSelectOutputWav;
         private Button btnSelectOutputCsv;
         private Button btnStart;
-        private Button btnCleanup; // 新しいボタン
+        private Button btnCleanup;
+        private CheckBox chkAutoCleanup; // 追加: 自動クリーンアップチェックボックス
 
         private readonly string settingsFilePath = Path.Combine(Application.StartupPath, "settings.json");
 
@@ -64,9 +65,18 @@ namespace talk_face_movie_timestamp2
             btnStart = new Button { Text = "開始", Location = new System.Drawing.Point(10, 130), Width = 100 };
             btnStart.Click += BtnStart_Click;
 
-            // クリーンアップボタン（新しく追加）
+            // クリーンアップボタン
             btnCleanup = new Button { Text = "入力フォルダクリーンアップ", Location = new System.Drawing.Point(120, 130), Width = 150 };
             btnCleanup.Click += BtnCleanup_Click;
+
+            // 追加: 自動クリーンアップチェックボックス
+            chkAutoCleanup = new CheckBox
+            {
+                Text = "変換後自動クリーンアップ",
+                Location = new System.Drawing.Point(280, 130),
+                Width = 150,
+                Checked = true // 初期値: チェックON
+            };
 
             // 結果表示
             Label lblResult = new Label { Text = "結果:", Location = new System.Drawing.Point(10, 160), Width = 100 };
@@ -76,7 +86,7 @@ namespace talk_face_movie_timestamp2
             this.Controls.AddRange(new Control[] { lblInputFolder, txtInputFolder, btnSelectInputFolder,
                                                   lblOutputWav, txtOutputWav, btnSelectOutputWav,
                                                   lblOutputCsv, txtOutputCsv, btnSelectOutputCsv,
-                                                  lblVoiceActor, txtVoiceActor, btnStart, btnCleanup, // btnCleanupを追加
+                                                  lblVoiceActor, txtVoiceActor, btnStart, btnCleanup, chkAutoCleanup, // chkAutoCleanupを追加
                                                   lblResult, txtResult });
 
             // イベントハンドラの登録
@@ -104,7 +114,6 @@ namespace talk_face_movie_timestamp2
             }
             catch (Exception ex)
             {
-                // 読み込み失敗時はデフォルト値のまま（エラーは無視）
                 System.Diagnostics.Debug.WriteLine($"設定の読み込みに失敗: {ex.Message}");
             }
         }
@@ -130,7 +139,6 @@ namespace talk_face_movie_timestamp2
             }
             catch (Exception ex)
             {
-                // 保存失敗時はエラー表示（任意）
                 System.Diagnostics.Debug.WriteLine($"設定の保存に失敗: {ex.Message}");
             }
         }
@@ -206,6 +214,7 @@ namespace talk_face_movie_timestamp2
                     if (MessageBox.Show("入力フォルダをクリーンアップしますか？", "確認", MessageBoxButtons.YesNo) == DialogResult.Yes)
                     {
                         CleanupInputFolder();
+                        MessageBox.Show("入力フォルダがクリーンアップされました。", "情報"); // 追加: メッセージ表示
                     }
                     return; // クリーンアップ後または「いいえ」の場合、処理を終了
                 }
@@ -230,7 +239,6 @@ namespace talk_face_movie_timestamp2
             }
         }
 
-        // 新しいクリーンアップボタンのイベントハンドラ
         private void BtnCleanup_Click(object sender, EventArgs e)
         {
             try
@@ -244,6 +252,7 @@ namespace talk_face_movie_timestamp2
                 if (MessageBox.Show("入力フォルダをクリーンアップしますか？", "確認", MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
                     CleanupInputFolder();
+                    MessageBox.Show("入力フォルダがクリーンアップされました。", "情報"); // 追加: メッセージ表示
                 }
             }
             catch (Exception ex)
@@ -252,7 +261,6 @@ namespace talk_face_movie_timestamp2
             }
         }
 
-        // クリーンアップ処理を独立したメソッドに抽出
         private void CleanupInputFolder()
         {
             var existingWavFiles = Directory.GetFiles(txtInputFolder.Text, "*.wav");
@@ -260,7 +268,7 @@ namespace talk_face_movie_timestamp2
             {
                 File.Delete(file);
             }
-            MessageBox.Show("入力フォルダがクリーンアップされました。", "情報");
+            // 削除: MessageBox.Show("入力フォルダがクリーンアップされました。", "情報");
         }
 
         private void ProcessWavFiles(List<string> wavFiles, string outputWav, string outputCsv, string voiceActor)
@@ -334,6 +342,12 @@ namespace talk_face_movie_timestamp2
             result.AppendLine($"CSVファイル: {outputCsv}");
             result.AppendLine($"出力ファイルサンプル数: {totalSamples}");
             result.AppendLine($"出力ファイル再生時間: {minutes:D3}:{seconds:00.000}");
+            // 追加: 自動クリーンアップ処理
+            if (chkAutoCleanup.Checked)
+            {
+                CleanupInputFolder();
+                result.AppendLine("(自動クリーンアップしました)");
+            }
 
             txtResult.Text = result.ToString();
             txtResult.SelectionStart = txtResult.Text.Length;
