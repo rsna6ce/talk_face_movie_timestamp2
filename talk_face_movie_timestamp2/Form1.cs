@@ -41,6 +41,7 @@ namespace talk_face_movie_timestamp2
 
             // 入力フォルダ
             Label lblInputFolder = new Label { Text = "入力フォルダ:", Location = new System.Drawing.Point(10, 10), Width = 100 };
+            lblInputFolder.DoubleClick += lblInputFolder_DoubleClick;
             txtInputFolder = new TextBox { Location = new System.Drawing.Point(120, 10), Width = 600, Font = new System.Drawing.Font("ＭＳ ゴシック", 9) };
             btnSelectInputFolder = new Button { Text = "選択", Location = new System.Drawing.Point(730, 10), Width = 60 };
             btnSelectInputFolder.Click += BtnSelectInputFolder_Click;
@@ -140,6 +141,16 @@ namespace talk_face_movie_timestamp2
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"設定の保存に失敗: {ex.Message}");
+            }
+        }
+
+        private void lblInputFolder_DoubleClick(object sender, EventArgs e)
+        {
+            string directory_name = txtInputFolder.Text;
+            if (directory_name != "")
+            {
+                txtOutputWav.Text = directory_name + ".wav";
+                txtOutputCsv.Text = directory_name + ".csv";
             }
         }
 
