@@ -1,0 +1,13 @@
+[Script Info]
+Title: YouTube風字幕 黒背景
+ScriptType: v4.00+
+PlayResX: 1380
+PlayResY: 200
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Meiryo UI,54,&H00FFFFFF,&H000000FF,&H00444444,&H00000000,1,0,0,0,100,100,0,0,1,5,3,2,10,10,24,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

@@ -8,6 +8,9 @@ using NAudio.Wave;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 
+// BudouX (Apache License 2.0) - Parser.csをプロジェクトに追加済みとして使用
+using BudouX;
+
 namespace talk_face_movie_timestamp2
 {
     public partial class Form1 : Form
@@ -22,7 +25,8 @@ namespace talk_face_movie_timestamp2
         private Button btnSelectOutputCsv;
         private Button btnStart;
         private Button btnCleanup;
-        private CheckBox chkAutoCleanup; // 追加: 自動クリーンアップチェックボックス
+        private CheckBox chkAutoCleanup;
+        private CheckBox chkAutoAss; // ← 新規追加
 
         private readonly string settingsFilePath = Path.Combine(Application.StartupPath, "settings.json");
 
@@ -34,11 +38,6 @@ namespace talk_face_movie_timestamp2
 
         private void InitializeUI()
         {
-            // フォーム設定（デザイナーで設定済みの場合はコメントアウト）
-            // this.Text = "Talk Face Timestamp2";
-            // this.Width = 800;
-            // this.Height = 600;
-
             // 入力フォルダ
             Label lblInputFolder = new Label { Text = "入力フォルダ:", Location = new System.Drawing.Point(10, 10), Width = 100 };
             lblInputFolder.DoubleClick += lblInputFolder_DoubleClick;
@@ -70,13 +69,22 @@ namespace talk_face_movie_timestamp2
             btnCleanup = new Button { Text = "入力フォルダクリーンアップ", Location = new System.Drawing.Point(120, 130), Width = 150 };
             btnCleanup.Click += BtnCleanup_Click;
 
-            // 追加: 自動クリーンアップチェックボックス
+            // 自動クリーンアップチェックボックス
             chkAutoCleanup = new CheckBox
             {
                 Text = "変換後自動クリーンアップ",
                 Location = new System.Drawing.Point(280, 130),
                 Width = 150,
-                Checked = true // 初期値: チェックON
+                Checked = true
+            };
+
+            // ← 新規追加：ASS自動生成チェックボックス
+            chkAutoAss = new CheckBox
+            {
+                Text = "ASSファイル自動生成",
+                Location = new System.Drawing.Point(440, 130),
+                Width = 160,
+                Checked = true // default true
             };
 
             // 結果表示
@@ -87,7 +95,8 @@ namespace talk_face_movie_timestamp2
             this.Controls.AddRange(new Control[] { lblInputFolder, txtInputFolder, btnSelectInputFolder,
                                                   lblOutputWav, txtOutputWav, btnSelectOutputWav,
                                                   lblOutputCsv, txtOutputCsv, btnSelectOutputCsv,
-                                                  lblVoiceActor, txtVoiceActor, btnStart, btnCleanup, chkAutoCleanup, // chkAutoCleanupを追加
+                                                  lblVoiceActor, txtVoiceActor, btnStart, btnCleanup,
+                                                  chkAutoCleanup, chkAutoAss, // ← 追加
                                                   lblResult, txtResult });
 
             // イベントハンドラの登録
@@ -95,6 +104,7 @@ namespace talk_face_movie_timestamp2
             this.FormClosing += Form1_FormClosing;
         }
 
+        // （Form1_Load, Form1_FormClosing, lblInputFolder_DoubleClick, BtnSelect* は変更なし）
         private void Form1_Load(object sender, EventArgs e)
         {
             // JSONファイルから設定を読み込む
@@ -263,7 +273,7 @@ namespace talk_face_movie_timestamp2
                 if (MessageBox.Show("入力フォルダをクリーンアップしますか？", "確認", MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
                     CleanupInputFolder();
-                    MessageBox.Show("入力フォルダがクリーンアップされました。", "情報"); // 追加: メッセージ表示
+                    MessageBox.Show("入力フォルダがクリーンアップされました。", "情報");
                 }
             }
             catch (Exception ex)
@@ -279,7 +289,6 @@ namespace talk_face_movie_timestamp2
             {
                 File.Delete(file);
             }
-            // 削除: MessageBox.Show("入力フォルダがクリーンアップされました。", "情報");
         }
 
         private void ProcessWavFiles(List<string> wavFiles, string outputWav, string outputCsv, string voiceActor)
@@ -290,6 +299,60 @@ namespace talk_face_movie_timestamp2
             WaveFormat waveFormat = null;
 
             txtResult.Text = "";
+
+            // ====================== ASS自動生成準備 ======================
+            string assPath = Path.ChangeExtension(outputCsv, ".ass");
+            string subtitleTxtPath = Path.Combine(txtInputFolder.Text, Path.GetFileName(txtInputFolder.Text) + ".txt");
+            bool generateAss = chkAutoAss.Checked;
+            List<string> subtitleLines = null;
+            Parser budouxParser = null;
+            int multiLineCount = 0;
+
+            if (generateAss)
+            {
+                if (!File.Exists(subtitleTxtPath))
+                {
+                    if (MessageBox.Show($"{subtitleTxtPath}\nが存在しません。\nASSファイル自動生成をスキップしますか？",
+                            "ASSファイル自動生成エラー", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1) == DialogResult.No)
+                    {
+                        return;
+                    }
+                    generateAss = false;
+                }
+                else
+                {
+                    subtitleLines = File.ReadAllLines(subtitleTxtPath, Encoding.UTF8).ToList();
+
+                    // BudouX初期化
+                    string modelPath = Path.Combine(Application.StartupPath, "ja.json");
+                    if (File.Exists(modelPath))
+                    {
+                        budouxParser = Parser.LoadDefaultJapaneseParser(modelPath);
+                    }
+                    else
+                    {
+                        MessageBox.Show("ja.jsonが見つかりません。ASS生成をスキップします。", "警告");
+                        generateAss = false;
+                    }
+                }
+            }
+
+            // ASSヘッダー読み込み
+            string assHeader = "";
+            if (generateAss)
+            {
+                string headerPath = Path.Combine(Application.StartupPath, "ASS_header.txt");
+                if (File.Exists(headerPath))
+                {
+                    assHeader = File.ReadAllText(headerPath, Encoding.UTF8);
+                }
+                else
+                {
+                    MessageBox.Show("ASS_header.txtが見つかりません。", "エラー");
+                    generateAss = false;
+                }
+            }
+            // ============================================================
 
             using (var firstReader = new WaveFileReader(wavFiles[0]))
             {
@@ -302,8 +365,10 @@ namespace talk_face_movie_timestamp2
 
             using (var output = new WaveFileWriter(outputWav, waveFormat))
             {
-                foreach (var wavFile in wavFiles)
+                for (int i = 0; i < wavFiles.Count; i++)
                 {
+                    var wavFile = wavFiles[i];
+
                     using (var reader = new WaveFileReader(wavFile))
                     {
                         if (reader.WaveFormat.SampleRate != waveFormat.SampleRate)
@@ -331,6 +396,34 @@ namespace talk_face_movie_timestamp2
                             csvLines.Add($"{from:F3},{to:F3}");
                         }
 
+                        // ====================== ASS Dialogue追加 ======================
+                        if (generateAss && subtitleLines != null && i < subtitleLines.Count)
+                        {
+                            string rawLine = subtitleLines[i];
+                            int commaIndex = rawLine.IndexOf(',');
+                            string subtitleText = (commaIndex >= 0 ? rawLine.Substring(commaIndex + 1) : rawLine).Trim();
+
+                            if (!string.IsNullOrWhiteSpace(subtitleText))
+                            {
+                                if (budouxParser != null)
+                                {
+                                    var chunks = budouxParser.Parse(subtitleText);
+                                    subtitleText = WrapForAss(chunks, 24);
+                                }
+
+                                // 3行超のチェック（\Nの個数で判定）
+                                int lineCount = subtitleText.Split(new[] { "\\N" }, StringSplitOptions.None).Length;
+                                if (lineCount > 3)
+                                {
+                                    multiLineCount++;
+                                }
+
+                                string dialogue = $"Dialogue: 0,{TimeSpanToAss(from)},{TimeSpanToAss(to)},Default,,0,0,0,,{subtitleText}";
+                                assHeader += dialogue + "\r\n";
+                            }
+                        }
+                        // ============================================================
+
                         byte[] buffer = new byte[1024];
                         int bytesRead;
                         while ((bytesRead = reader.Read(buffer, 0, buffer.Length)) > 0)
@@ -345,15 +438,39 @@ namespace talk_face_movie_timestamp2
 
             File.WriteAllLines(outputCsv, csvLines, Encoding.UTF8);
 
+            // ASSファイル保存
+            if (generateAss)
+            {
+                File.WriteAllText(assPath, assHeader, Encoding.UTF8);
+                result.AppendLine($"ASSファイル: {assPath}");
+            }
+
             double totalDuration = (double)totalSamples / waveFormat.SampleRate;
             int minutes = (int)(totalDuration / 60);
             double seconds = totalDuration % 60;
             result.AppendLine();
             result.AppendLine($"出力ファイル: {outputWav}");
             result.AppendLine($"CSVファイル: {outputCsv}");
+            if (generateAss)
+            {
+                result.AppendLine($"ASSファイル: {assPath}");
+                // 3行超警告
+                if (multiLineCount > 0)
+                {
+                    MessageBox.Show(
+                        $"ASSファイル自動生成\n\n" +
+                        $"三行を超えるセリフが {multiLineCount} 件ありました。\n" +
+                        $"ASSファイルを確認してください。\n\n" +
+                        $"({assPath})",
+                        "ASSファイル自動生成 - 警告",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
+            }
+
             result.AppendLine($"出力ファイルサンプル数: {totalSamples}");
             result.AppendLine($"出力ファイル再生時間: {minutes:D3}:{seconds:00.000}");
-            // 追加: 自動クリーンアップ処理
+
             if (chkAutoCleanup.Checked)
             {
                 CleanupInputFolder();
@@ -363,6 +480,59 @@ namespace talk_face_movie_timestamp2
             txtResult.Text = result.ToString();
             txtResult.SelectionStart = txtResult.Text.Length;
             txtResult.ScrollToCaret();
+        }
+
+        // ====================== 自動改行関数（全角基準） ======================
+        // ====================== 自動改行関数（全角基準・修正版） ======================
+        private string WrapForAss(List<string> chunks, int maxFullWidthChars = 24)
+        {
+            var sb = new StringBuilder();
+            var line = new StringBuilder();
+            int currentWidth = 0;                    // 半角換算の現在幅
+            int maxWidth = maxFullWidthChars * 2;    // 全角24文字 = 半角48
+
+            foreach (var chunk in chunks)
+            {
+                int chunkWidth = GetFullWidthLength(chunk);
+
+                // 超過しそうなら改行
+                if (currentWidth + chunkWidth > maxWidth && currentWidth > 0)
+                {
+                    if (sb.Length > 0) sb.Append("\\N");
+                    sb.Append(line);
+                    line.Clear();
+                    currentWidth = 0;
+                }
+
+                line.Append(chunk);
+                currentWidth += chunkWidth;
+            }
+
+            // 最後の行
+            if (line.Length > 0)
+            {
+                if (sb.Length > 0) sb.Append("\\N");
+                sb.Append(line);
+            }
+
+            return sb.ToString();
+        }
+
+        // 全角・半角を正確にカウント
+        private int GetFullWidthLength(string text)
+        {
+            int length = 0;
+            foreach (char c in text)
+            {
+                length += (c > '\u007F' || c == '　') ? 2 : 1;
+            }
+            return length;
+        }
+
+        private string TimeSpanToAss(double seconds)
+        {
+            var ts = TimeSpan.FromSeconds(seconds);
+            return $"{(int)ts.TotalHours:D1}:{ts.Minutes:D2}:{ts.Seconds:D2}.{ts.Milliseconds / 10:D2}";
         }
 
         private bool IsFullWidth(char c)
