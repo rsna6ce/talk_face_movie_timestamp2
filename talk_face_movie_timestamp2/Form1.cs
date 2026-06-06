@@ -306,6 +306,8 @@ namespace talk_face_movie_timestamp2
             bool generateAss = chkAutoAss.Checked;
             List<string> subtitleLines = null;
             Parser budouxParser = null;
+            int maxLineWidth = 24;        // デフォルト値
+            string assHeader = "";
             int multiLineCount = 0;
 
             if (generateAss)
@@ -334,22 +336,31 @@ namespace talk_face_movie_timestamp2
                         MessageBox.Show("ja.jsonが見つかりません。ASS生成をスキップします。", "警告");
                         generateAss = false;
                     }
-                }
-            }
 
-            // ASSヘッダー読み込み
-            string assHeader = "";
-            if (generateAss)
-            {
-                string headerPath = Path.Combine(Application.StartupPath, "ASS_header.txt");
-                if (File.Exists(headerPath))
-                {
-                    assHeader = File.ReadAllText(headerPath, Encoding.UTF8);
-                }
-                else
-                {
-                    MessageBox.Show("ASS_header.txtが見つかりません。", "エラー");
-                    generateAss = false;
+                    // ==================== ASS_header.txt を1回だけ読み込み ====================
+                    string headerPath = Path.Combine(Application.StartupPath, "ASS_header.txt");
+                    if (File.Exists(headerPath))
+                    {
+                        assHeader = File.ReadAllText(headerPath, Encoding.UTF8);
+
+                        // MaxLineWidth を抽出
+                        var match = System.Text.RegularExpressions.Regex.Match(assHeader,
+                            @"MaxLineWidth\s*:\s*(\d+)",
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                        if (match.Success && int.TryParse(match.Groups[1].Value, out int w))
+                        {
+                            maxLineWidth = w;
+                            // デバッグ用（必要なければ削除可）
+                            // print_textbox($"MaxLineWidth: {maxLineWidth}文字に設定");
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("ASS_header.txtが見つかりません。", "エラー");
+                        generateAss = false;
+                    }
+                    // ==========================================================================
                 }
             }
             // ============================================================
@@ -408,7 +419,7 @@ namespace talk_face_movie_timestamp2
                                 if (budouxParser != null)
                                 {
                                     var chunks = budouxParser.Parse(subtitleText);
-                                    subtitleText = WrapForAss(chunks, 24);
+                                    subtitleText = WrapForAss(chunks, maxLineWidth);
                                 }
 
                                 // 3行超のチェック（\Nの個数で判定）
