@@ -28,6 +28,8 @@ namespace talk_face_movie_timestamp2
         private CheckBox chkAutoCleanup;
         private CheckBox chkAutoAss; // ← 新規追加
 
+        private bool autoSuccess = false;
+
         private readonly string settingsFilePath = Path.Combine(Application.StartupPath, "settings.json");
 
         public Form1()
@@ -172,6 +174,14 @@ namespace talk_face_movie_timestamp2
             {
                 System.Diagnostics.Debug.WriteLine($"設定の保存に失敗: {ex.Message}");
             }
+
+            var args = Environment.GetCommandLineArgs();
+            bool isAutoMode = args.Any(arg => arg.Equals("/auto", StringComparison.OrdinalIgnoreCase));
+            if (isAutoMode)
+            {
+                // 成功フラグがfalseならエラー終了コードを返す
+                Environment.Exit(autoSuccess ? 0 : 1);
+            }
         }
 
         private void lblInputFolder_DoubleClick(object sender, EventArgs e)
@@ -282,6 +292,7 @@ namespace talk_face_movie_timestamp2
                     {
                         this.Invoke(new Action(() =>
                         {
+                            autoSuccess = true;
                             this.Close();   // フォームを閉じる
                         }));
                     });
