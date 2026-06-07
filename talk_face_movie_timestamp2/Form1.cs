@@ -325,6 +325,46 @@ namespace talk_face_movie_timestamp2
                 {
                     subtitleLines = File.ReadAllLines(subtitleTxtPath, Encoding.UTF8).ToList();
 
+                    // WAVファイル名とセリフテキストファイルを簡易照合
+                    for (int i = 0; i < wavFiles.Count ; i++)
+                    {
+                        string wavFileName = Path.GetFileName(wavFiles[i]);
+
+                        // WAVファイル名から [xxx] 部分を除去して比較用文字列を作成
+                        string wavClean = System.Text.RegularExpressions.Regex.Replace(wavFileName, @"\[.*?\]", "");
+                        wavClean = wavClean.Replace("...", "").Trim();
+
+                        string txtLine = (i < subtitleLines.Count) ? subtitleLines[i] : "[no more subtitle lines...]";
+
+                        // セリフファイルは「声優名,セリフ」なので声優名部分だけ抽出
+                        int commaPos = txtLine.IndexOf(',');
+                        string txtVoicePart = (commaPos >= 0 ? txtLine.Substring(0, commaPos) : txtLine).Trim();
+
+                        if (wavClean.IndexOf(txtVoicePart, StringComparison.OrdinalIgnoreCase) < 0)
+                        {
+                            DialogResult res = MessageBox.Show(
+                                $"ベリファイ失敗: 行 {i + 1}\n\n" +
+                                $"WAV: {wavFileName}\n" +
+                                $"TXT: {txtLine}\n\n" +
+                                $"WAVファイルとセリフファイルが一致しません。\n" +
+                                $"ASSファイル自動生成をスキップしますか？",
+                                "ベリファイエラー",
+                                MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Warning,
+                                MessageBoxDefaultButton.Button2);
+
+                            if (res == DialogResult.No)
+                            {
+                                return; // 処理中断
+                            }
+                            else
+                            {
+                                generateAss = false;
+                                break;
+                            }
+                        }
+                    }
+
                     // BudouX初期化
                     string modelPath = Path.Combine(Application.StartupPath, "ja.json");
                     if (File.Exists(modelPath))
@@ -453,7 +493,6 @@ namespace talk_face_movie_timestamp2
             if (generateAss)
             {
                 File.WriteAllText(assPath, assHeader, Encoding.UTF8);
-                result.AppendLine($"ASSファイル: {assPath}");
             }
 
             double totalDuration = (double)totalSamples / waveFormat.SampleRate;
