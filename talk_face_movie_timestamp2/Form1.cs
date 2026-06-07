@@ -127,6 +127,26 @@ namespace talk_face_movie_timestamp2
             {
                 System.Diagnostics.Debug.WriteLine($"設定の読み込みに失敗: {ex.Message}");
             }
+
+            // ====================== /auto モード処理 ======================
+            var args = Environment.GetCommandLineArgs();
+            if (args.Any(arg => arg.Equals("/auto", StringComparison.OrdinalIgnoreCase)))
+            {
+                txtResult.Text = "自動実行モード ...";
+
+                // 少し待ってから自動実行（UIが表示されるのを待つ）
+                this.Shown += (s, ev) =>
+                {
+                    System.Threading.Tasks.Task.Delay(800).ContinueWith(t =>
+                    {
+                        this.Invoke(new Action(() =>
+                        {
+                            BtnStart_Click(null, null);  // ボタンクリックと同じ処理を実行
+                        }));
+                    });
+                };
+            }
+            // ============================================================
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -253,6 +273,20 @@ namespace talk_face_movie_timestamp2
                 }
 
                 ProcessWavFiles(wavFiles, txtOutputWav.Text, txtOutputCsv.Text, txtVoiceActor.Text);
+
+                // ====================== /auto モード時は2秒後に自動終了 ======================
+                var args = Environment.GetCommandLineArgs();
+                if (args.Any(arg => arg.Equals("/auto", StringComparison.OrdinalIgnoreCase)))
+                {
+                    System.Threading.Tasks.Task.Delay(2000).ContinueWith(t =>
+                    {
+                        this.Invoke(new Action(() =>
+                        {
+                            this.Close();   // フォームを閉じる
+                        }));
+                    });
+                }
+                // ============================================================================
             }
             catch (Exception ex)
             {
