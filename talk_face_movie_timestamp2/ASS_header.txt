@@ -4,7 +4,7 @@ ScriptType: v4.00+
 PlayResX: 1920
 PlayResY: 250
 ScaledBorderAndShadow: yes
-MaxLineWidth: 24     ; ©“®‰üs‚·‚é‘SŠp•¶š”
+MaxLineWidth: 24     ; è‡ªå‹•æ”¹è¡Œã™ã‚‹å…¨è§’æ–‡å­—æ•°
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
