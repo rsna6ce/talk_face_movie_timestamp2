@@ -284,11 +284,11 @@ namespace talk_face_movie_timestamp2
 
                 ProcessWavFiles(wavFiles, txtOutputWav.Text, txtOutputCsv.Text, txtVoiceActor.Text);
 
-                // ====================== /auto モード時は2秒後に自動終了 ======================
+                // ====================== /auto モード時は1秒後に自動終了 ======================
                 var args = Environment.GetCommandLineArgs();
                 if (args.Any(arg => arg.Equals("/auto", StringComparison.OrdinalIgnoreCase)))
                 {
-                    System.Threading.Tasks.Task.Delay(2000).ContinueWith(t =>
+                    System.Threading.Tasks.Task.Delay(1000).ContinueWith(t =>
                     {
                         this.Invoke(new Action(() =>
                         {
@@ -578,7 +578,6 @@ namespace talk_face_movie_timestamp2
         }
 
         // ====================== 自動改行関数（全角基準） ======================
-        // ====================== 自動改行関数（全角基準・修正版） ======================
         private string WrapForAss(List<string> chunks, int maxFullWidthChars = 24)
         {
             var sb = new StringBuilder();
