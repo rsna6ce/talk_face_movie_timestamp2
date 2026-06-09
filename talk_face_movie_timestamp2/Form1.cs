@@ -501,7 +501,11 @@ namespace talk_face_movie_timestamp2
 
                             if (!string.IsNullOrWhiteSpace(subtitleText))
                             {
-                                if (budouxParser != null)
+                                // 「、」が1つだけあり、かつ前半・後半が24文字以内に収まる場合は優先改行
+                                subtitleText = ApplyCommaPriorityWrap(subtitleText, maxLineWidth);
+
+                                // 通常のBudouX処理（上記の優先改行が適用されなかった場合）
+                                if (budouxParser != null && !subtitleText.Contains("\\N"))
                                 {
                                     var chunks = budouxParser.Parse(subtitleText);
                                     subtitleText = WrapForAss(chunks, maxLineWidth);
@@ -575,6 +579,34 @@ namespace talk_face_movie_timestamp2
             txtResult.Text = result.ToString();
             txtResult.SelectionStart = txtResult.Text.Length;
             txtResult.ScrollToCaret();
+        }
+
+        // 「、」が1つだけあり、前半・後半がmaxWidth以内に収まる場合に改行
+        private string ApplyCommaPriorityWrap(string text, int maxFullWidth = 24)
+        {
+            int maxWidth = maxFullWidth * 2;
+            // 「、」の個数をカウント
+            int commaCount = text.Count(c => c == '、');
+            if (commaCount != 1)
+                return text;
+
+            if (GetFullWidthLength(text) < maxWidth)
+                return text;
+
+            int commaPos = text.IndexOf('、');
+            string part1 = text.Substring(0, commaPos + 1);  // 「、」を含める
+            string part2 = text.Substring(commaPos + 1);
+
+            int len1 = GetFullWidthLength(part1);
+            int len2 = GetFullWidthLength(part2);
+
+            // 両方が24文字以内に収まる場合のみ優先改行
+            if (len1 <= maxWidth && len2 <= maxWidth)
+            {
+                return part1 + "\\N" + part2;
+            }
+
+            return text;
         }
 
         // ====================== 自動改行関数（全角基準） ======================
