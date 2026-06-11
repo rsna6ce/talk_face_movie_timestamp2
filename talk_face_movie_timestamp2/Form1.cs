@@ -357,7 +357,20 @@ namespace talk_face_movie_timestamp2
 
             if (generateAss)
             {
-                if (!File.Exists(subtitleTxtPath))
+                bool file_exists = File.Exists(subtitleTxtPath);
+                if (!file_exists)
+                {
+                    string[] txtFiles = Directory.GetFiles(txtInputFolder.Text, "*.txt");
+
+                    if (txtFiles.Length > 0)
+                    {
+                        file_exists = true;
+                        subtitleTxtPath = txtFiles[0];  // 既定のファイルが見つからない時のリカバリー、テキストファイルの最初の1つを候補にする
+                        Console.WriteLine("最初の.txtファイル: " + subtitleTxtPath);
+                    }
+                }
+
+                if (!file_exists)
                 {
                     if (MessageBox.Show($"{subtitleTxtPath}\nが存在しません。\nASSファイル自動生成をスキップしますか？",
                             "ASSファイル自動生成エラー", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1) == DialogResult.No)
