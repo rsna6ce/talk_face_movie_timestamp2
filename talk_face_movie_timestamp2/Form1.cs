@@ -132,7 +132,33 @@ namespace talk_face_movie_timestamp2
 
             // ====================== /auto モード処理 ======================
             var args = Environment.GetCommandLineArgs();
-            if (args.Any(arg => arg.Equals("/auto", StringComparison.OrdinalIgnoreCase)))
+            bool autoMode = false;
+            string inputPathFromArg = null;
+
+            for (int i = 1; i < args.Length; i++)
+            {
+                if (args[i].Equals("/auto", StringComparison.OrdinalIgnoreCase))
+                {
+                    autoMode = true;
+                }
+                else if (args[i].Equals("/input", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    inputPathFromArg = args[i + 1].Trim('"');
+                    i++; // 次の引数をスキップ
+                }
+            }
+
+            // /input が指定されていたら上書き
+            if (!string.IsNullOrEmpty(inputPathFromArg))
+            {
+                txtInputFolder.Text = inputPathFromArg;
+
+                // 出力ファイル名も自動設定
+                txtOutputWav.Text = inputPathFromArg + ".wav";
+                txtOutputCsv.Text = inputPathFromArg + ".csv";
+            }
+
+            if (autoMode)
             {
                 txtResult.Text = "自動実行モード ...";
 
