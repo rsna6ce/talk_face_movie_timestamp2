@@ -557,7 +557,9 @@ namespace talk_face_movie_timestamp2
                                     multiLineCount++;
                                 }
 
-                                string dialogue = $"Dialogue: 0,{TimeSpanToAss(from)},{TimeSpanToAss(to)},Default,,0,0,0,,{subtitleText}";
+                                // ====================== キャラ別スタイル適用 ======================
+                                string styleName = (marker == "") ? "Style1" : "Style2";
+                                string dialogue = $"Dialogue: 0,{TimeSpanToAss(from)},{TimeSpanToAss(to)},{styleName},,0,0,0,,{subtitleText}";
                                 assHeader += dialogue + "\r\n";
                             }
                         }
